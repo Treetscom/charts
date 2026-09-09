@@ -92,6 +92,30 @@ serviceAccount:
 
 podAnnotations: {}
 
+# Pod-level security context, applied to every workload this chart renders: the
+# web Deployment, the taskiq worker and scheduler Deployments, and the migrator
+# Jobs. runAsNonRoot belongs here rather than on a container, because that is
+# where the kubelet enforces it -- and it needs the image to declare a numeric
+# UID, since a `USER name` cannot be resolved at admission.
+podSecurityContext: {}
+  # runAsNonRoot: true
+  # runAsUser: 1000
+  # runAsGroup: 1000
+  # seccompProfile:
+  #   type: RuntimeDefault
+
+# Container-level security context, applied to the container in every workload
+# this chart renders. Takes precedence over podSecurityContext where the two
+# overlap.
+securityContext: {}
+  # allowPrivilegeEscalation: false
+  # capabilities:
+  #   drop:
+  #     - ALL
+  # readOnlyRootFilesystem is deliberately not suggested here: the Python
+  # services write to /tmp at runtime, and this chart has no volumeMounts
+  # support to give them an emptyDir there.
+
 service:
   enabled: true
   type: ClusterIP

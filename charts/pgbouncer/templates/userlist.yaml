@@ -1,0 +1,25 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ include "pgbouncer.fullname" . }}-userlist
+  labels:
+    {{- include "pgbouncer.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync,Sync
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  refreshInterval: {{ .Values.userlist.refreshInterval }}
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: {{ .Values.userlist.secretStoreName }}
+  target:
+    name: {{ include "pgbouncer.fullname" . }}-userlist
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      engineVersion: v2
+      data:
+        userlist.txt: {{ .Values.userlist.template | quote }}
+  dataFrom:
+    - extract:
+        key: {{ required "userlist.remoteKey is required" .Values.userlist.remoteKey }}

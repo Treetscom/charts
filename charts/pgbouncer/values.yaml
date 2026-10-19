@@ -7,22 +7,39 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: bitnamilegacy/pgbouncer
+  repository: ghcr.io/cloudnative-pg/pgbouncer
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  # Pinned to a dated build: the plain 1.26.0 tag is rebuilt in place.
+  tag: "1.26.0-202610071304-trixie"
 
-# Raw environment variables to use.
-env:
-  PGBOUNCER_POOL_MODE: "transaction"
-  PGBOUNCER_PORT: "5432"
+# Rendered into pgbouncer.ini, one "key = value" line per entry. listen_port
+# (service.port) and auth_file are set by the chart. Quote values that YAML
+# would otherwise reinterpret, such as "0777". Set a key to null to drop a default.
+# https://www.pgbouncer.org/config.html
+config:
+  # e.g. "*": "host=cnpg-cluster-rw.cnpg-cluster.svc.cluster.local port=5432"
+  databases: {}
+  pgbouncer:
+    listen_addr: "0.0.0.0"
+    unix_socket_dir: "/tmp/"
+    unix_socket_mode: "0777"
+    pool_mode: "transaction"
+    client_tls_sslmode: "disable"
+    server_tls_sslmode: "disable"
+    ignore_startup_parameters: "extra_float_digits"
+    stats_period: 60
+    server_round_robin: 0
+    server_fast_close: 0
 
-# external secrets for env variables to create.
-externalSecrets: {}
-
-# List of existing secrets to mount for env variables
-existingSecrets: []
+# ExternalSecret that renders userlist.txt (the auth_file) from a Secrets
+# Manager entry. The template uses the External Secrets v2 engine.
+userlist:
+  secretStoreName: cluster-secret-store
+  remoteKey: ""
+  refreshInterval: 1h
+  template: '"{{ .POSTGRESQL_USERNAME }}" "{{ .POSTGRESQL_PASSWORD }}"'
 
 # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []

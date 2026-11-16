@@ -224,3 +224,52 @@ limitRange:
   #       memory: 500Mi
   #     type: Container
 extraManifests: []
+
+# WAF sidecar (Portcullis). When enabled, a native sidecar is added to the web
+# pods and the Service sends traffic to it instead of to the app. The app's own
+# port, probes and command are left alone, so turning this off again restores
+# the previous traffic path exactly.
+# The static Service (service.staticServiceName), used by other services inside
+# the cluster, keeps pointing straight at the app.
+waf:
+  enabled: false
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  # enforce | detect | passthrough. Lives in the ConfigMap, so changing it
+  # does not restart pods.
+  mode: detect
+  # Forces passthrough for this app, whatever the mode.
+  killSwitch: false
+  # Port the sidecar listens on; the Service targets it.
+  port: 8080
+  # Health and Prometheus metrics.
+  adminPort: 9090
+  # Port the app listens on inside the pod.
+  appPort: 8000
+  # Peers whose X-Forwarded-For is believed: the gateway as the pod sees it.
+  # Environment-specific; set it per cluster.
+  trustedPeers: []
+  # Where the app serves its OpenAPI JSON, fetched once over localhost.
+  specPath: /_internal/openapi.json
+  spec:
+    enabled: true
+    # Served but not in the document: "/prefix", or a bare final segment.
+    allow: ["docs", "redoc"]
+    deny: []
+  # Name of a ConfigMap with a `waf-global` key holding a mode that overrides
+  # every app (break-glass). Optional; the ConfigMap need not exist.
+  globalConfigMap: ""
+  # Further Portcullis settings as TOML, appended to the generated file. Use
+  # it for tables the chart does not model ([limits], [log], [server]), e.g.
+  #   extraConfig: |
+  #     [limits]
+  #     json_body_bytes = 2097152
+  extraConfig: ""
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      memory: 64Mi

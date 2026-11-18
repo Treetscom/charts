@@ -9,7 +9,12 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
+      {{- if .Values.waf.enabled }}
+      # Traffic enters through the WAF sidecar, which forwards to the app on localhost.
+      targetPort: waf
+      {{- else }}
       targetPort: {{ .Values.service.targetPort | default "http" }}
+      {{- end }}
       protocol: TCP
       name: http
       {{- if eq .Values.service.type "NodePort" }}

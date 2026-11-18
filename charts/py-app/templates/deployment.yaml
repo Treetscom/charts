@@ -21,6 +21,9 @@ spec:
   template:
     metadata:
       {{- $podAnnotations := merge (deepCopy (default dict .Values.podAnnotations)) (default dict .Values.instrumentation.annotations) }}
+      {{- if and .Values.waf.enabled .Values.waf.specPath }}
+      {{- $_ := set $podAnnotations "waf.treets.com/spec-path" .Values.waf.specPath }}
+      {{- end }}
       {{- with $podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
@@ -28,6 +31,9 @@ spec:
       {{- $baseSelectorLabels := (include "py-app.selectorLabels" . | fromYaml) }}
       {{- $_ := set $baseSelectorLabels "deployment_type" "web" }}
       {{- $mergedLabels := merge $baseSelectorLabels (default dict .Values.instrumentation.labels) }}
+      {{- if .Values.waf.enabled }}
+      {{- $_ := set $mergedLabels "waf.treets.com/enabled" "true" }}
+      {{- end }}
       labels:
         {{- toYaml $mergedLabels | nindent 8 }}
     spec:
@@ -36,6 +42,20 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "py-app.serviceAccountName" . }}
+      {{- if .Values.waf.enabled }}
+      initContainers:
+        {{- include "py-app.wafSidecar" . | nindent 8 }}
+      volumes:
+        - name: waf-config
+          configMap:
+            name: {{ include "py-app.fullname" . }}-waf
+        {{- with .Values.waf.globalConfigMap }}
+        - name: waf-global
+          configMap:
+            name: {{ . }}
+            optional: true
+        {{- end }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

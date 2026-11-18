@@ -1,0 +1,14 @@
+{{- if .Values.waf.enabled -}}
+# Config for the WAF sidecar. The sidecar re-reads the mounted file every
+# second, so a change here (mode, kill switch, lists, limits) takes effect
+# without restarting pods, once the kubelet has synced the ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "py-app.fullname" . }}-waf
+  labels:
+    {{- include "py-app.labels" . | nindent 4 }}
+data:
+  config.toml: |
+    {{- include "py-app.wafConfig" . | nindent 4 }}
+{{- end }}

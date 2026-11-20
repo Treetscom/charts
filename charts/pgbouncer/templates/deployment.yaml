@@ -17,10 +17,11 @@ spec:
       {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ include "pgbouncer.ini" . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "pgbouncer.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -40,7 +41,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- include "pgbouncer.envs" . | indent 10 -}}
           ports:
             - name: pg
               containerPort: {{ .Values.service.port }}
@@ -51,6 +51,18 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/pgbouncer
+              readOnly: true
+      volumes:
+        - name: config
+          projected:
+            sources:
+              - configMap:
+                  name: {{ include "pgbouncer.fullname" . }}
+              - secret:
+                  name: {{ include "pgbouncer.fullname" . }}-userlist
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

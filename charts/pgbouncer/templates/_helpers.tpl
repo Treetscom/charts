@@ -61,27 +61,25 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
-{{- define "pgbouncer.envs" -}}
-{{- with .Values.env }}
-env:
-    {{- range $key, $val := . }}
-    - name: {{ $key }}
-      value: {{ $val | quote }}
-    {{- end }}
+{{/*
+pgbouncer.ini. listen_port follows service.port and auth_file points at the
+userlist.txt the ExternalSecret renders; everything else comes from .Values.config.
+Numbers are printed as integers, since Helm reads them as floats.
+*/}}
+{{- define "pgbouncer.ini.value" -}}
+{{- if kindIs "float64" . }}{{ int64 . }}{{ else }}{{ . }}{{ end }}
 {{- end }}
-{{- if or (.Values.externalSecrets) (.Values.existingSecrets) }}
-envFrom:
-{{- with .Values.externalSecrets }}
-  {{- range $name, $val := . }}
-  - secretRef:
-      name: {{ $val.targetName }} 
-  {{- end }}
+
+{{- define "pgbouncer.ini" -}}
+[databases]
+{{- range $name, $conn := .Values.config.databases }}
+{{ $name }} = {{ $conn }}
 {{- end }}
-{{- with .Values.existingSecrets }}
-  {{- range $name := . }}
-  - secretRef:
-     name: {{ $name }} 
-  {{- end }}
-{{- end }}
+
+[pgbouncer]
+listen_port = {{ .Values.service.port }}
+auth_file = /etc/pgbouncer/userlist.txt
+{{- range $key, $val := .Values.config.pgbouncer }}
+{{ $key }} = {{ include "pgbouncer.ini.value" $val }}
 {{- end }}
 {{ end -}}

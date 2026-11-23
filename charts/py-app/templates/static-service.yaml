@@ -1,5 +1,4 @@
 {{- if and .Values.service.enabled .Values.service.staticServiceName -}}
-{{- /* Targets the app port even when waf.enabled: in-cluster callers bypass the WAF on purpose (see waf.port in values.yaml). */ -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,7 +9,12 @@ spec:
   type: ClusterIP
   ports:
     - port: {{ .Values.service.port }}
+      {{- if .Values.waf.enabled }}
+      # In-cluster callers go through the WAF sidecar too.
+      targetPort: waf
+      {{- else }}
       targetPort: {{ .Values.service.targetPort | default .Values.service.port }}
+      {{- end }}
       protocol: TCP
       name: static-service
   selector:

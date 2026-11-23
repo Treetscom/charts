@@ -230,7 +230,7 @@ extraManifests: []
 # port, probes and command are left alone, so turning this off again restores
 # the previous traffic path exactly.
 # The static Service (service.staticServiceName), used by other services inside
-# the cluster, keeps pointing straight at the app.
+# the cluster, goes through the sidecar as well.
 waf:
   enabled: false
   image:
@@ -242,13 +242,7 @@ waf:
   mode: detect
   # Forces passthrough for this app, whatever the mode.
   killSwitch: false
-  # Port the sidecar listens on; the Service targets it.
-  #
-  # Only the main Service (the one the HTTPRoute uses) goes through the
-  # sidecar. The static Service (service.staticServiceName) keeps pointing at
-  # the app port, so in-cluster callers using it bypass the WAF on purpose:
-  # the WAF guards traffic from outside the cluster, and service-to-service
-  # access is meant to be limited with network policies instead.
+  # Port the sidecar listens on; both Services target it.
   port: 8080
   # Health and Prometheus metrics.
   adminPort: 9090

@@ -35,7 +35,11 @@ ttlSecondsAfterFinished: 3600
 taskiq:
   workerCmd: []
   schedulerCmd: []
+  # Shared by the worker and the scheduler unless overridden below.
   resources: {}
+  # Per-deployment overrides; an empty map falls back to taskiq.resources.
+  workerResources: {}
+  schedulerResources: {}
   workers: 1
   instrumentation:
     worker:
